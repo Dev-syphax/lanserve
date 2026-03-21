@@ -8,12 +8,13 @@ on:
 
 jobs:
   test:
-    name: Python ${{ matrix.python-version }}
+    name: Python ${{ matrix.python-version }} / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ["3.11", "3.12"]
+        python-version: ["3.8", "3.11", "3.12"]
 
     steps:
       - uses: actions/checkout@v4
@@ -27,7 +28,7 @@ jobs:
         run: pip install -e .
 
       - name: Check CLI entry point
-        run: lanserve --version
+        run: python -m lanserve --version
 
       - name: Syntax check
         run: python -m py_compile src/lanserve/server.py src/lanserve/__main__.py
@@ -40,5 +41,5 @@ jobs:
           assert '<!-- SLOT:displaypath -->' in t
           result = render_template({'displaypath': '/test', 'folder_options': '', 'file_items': ''})
           assert '<!-- SLOT:' not in result
-          print('✓ Template OK')
+          print('OK - Template loads and renders correctly')
           "
