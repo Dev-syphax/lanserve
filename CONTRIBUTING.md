@@ -30,7 +30,7 @@ lanserve --dir .
 
 ```
 lanserve/
-├── src/
+├── src/lanserve/         ← main package
 │   ├── __init__.py       ← version and package metadata
 │   ├── __main__.py       ← CLI entry point (`python -m lanserve`)
 │   ├── server.py         ← HTTP server (stdlib only)
