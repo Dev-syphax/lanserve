@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FileHub — <!-- SLOT:displaypath --></title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@400;700;800&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0d0f14;
+    --surface:   #13161e;
+    --border:    #1f2433;
+    --accent:    #4facfe;
+    --accent2:   #00c0ff;
+    --text:      #e8edf5;
+    --muted:     #5a6480;
+    --success:   #00e5a0;
+    --error:     #ff6b6b;
+    --radius:    10px;
+  }
+
+  body {
+    font-family: 'Syne', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 2rem 1rem;
+  }
+
+  .wrap { max-width: 860px; margin: 0 auto; }
+
+  /* ── Header ── */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo {
+    width: 38px; height: 38px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 8px;
+    display: grid; place-items: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  header h1 { font-size: 1.15rem; font-weight: 700; letter-spacing: -0.02em; }
+  header h1 span {
+    color: var(--muted);
+    font-weight: 400;
+    font-size: 0.9rem;
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    margin-top: 1px;
+  }
+
+  /* ── Upload card ── */
+  .upload-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin-bottom: 1.75rem;
+  }
+  .upload-card h2 {
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 1rem;
+  }
+  .drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 1.75rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    position: relative;
+    margin-bottom: 1rem;
+  }
+  .drop-zone.drag-over {
+    border-color: var(--accent);
+    background: rgba(79, 172, 254, 0.05);
+  }
+  .drop-zone input[type=file] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .drop-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+  .drop-label { font-size: 0.9rem; color: var(--muted); }
+  .drop-label strong { color: var(--accent); }
+  #file-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--accent2);
+    margin-top: 6px;
+  }
+
+  .form-row { display: flex; gap: 0.75rem; align-items: stretch; flex-wrap: wrap; }
+  select {
+    flex: 1; min-width: 140px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 0.6rem 0.8rem;
+    border-radius: var(--radius);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%235a6480' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    padding-right: 2rem;
+  }
+  .btn {
+    padding: 0.6rem 1.4rem;
+    border-radius: var(--radius);
+    border: none;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary {
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    color: #0d0f14;
+  }
+  .btn-primary:hover { opacity: 0.9; }
+
+  /* Progress bar */
+  #progress-wrap {
+    display: none;
+    margin-top: 0.75rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    overflow: hidden;
+    height: 6px;
+  }
+  #progress-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transition: width 0.2s;
+  }
+  #upload-status { font-size: 0.8rem; color: var(--muted); margin-top: 6px; }
+
+  /* ── File list ── */
+  .section-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.75rem;
+  }
+  .file-list {
+    list-style: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .file-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+    text-decoration: none;
+    color: var(--text);
+    transition: background 0.15s;
+  }
+  .file-item:last-child { border-bottom: none; }
+  .file-item:hover { background: rgba(79, 172, 254, 0.06); }
+  .file-icon { font-size: 1.1rem; flex-shrink: 0; width: 1.5rem; text-align: center; }
+  .file-name {
+    flex: 1;
+    font-size: 0.9rem;
+    font-family: 'JetBrains Mono', monospace;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .file-item.dir .file-name { color: var(--accent2); }
+  .file-size { font-size: 0.75rem; color: var(--muted); font-family: 'JetBrains Mono', monospace; flex-shrink: 0; }
+  .btn-delete {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: color 0.15s, background 0.15s;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+  .btn-delete:hover { color: var(--error); background: rgba(255,107,107,0.1); }
+  .badge-parent {
+    font-size: 0.7rem;
+    background: var(--border);
+    color: var(--muted);
+    padding: 2px 8px;
+    border-radius: 100px;
+  }
+
+  /* Toast */
+  #toast {
+    position: fixed; bottom: 1.5rem; right: 1.5rem;
+    padding: 0.7rem 1.2rem;
+    background: var(--success);
+    color: #0d0f14;
+    font-weight: 700;
+    border-radius: var(--radius);
+    font-size: 0.85rem;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.3s, transform 0.3s;
+    pointer-events: none;
+  }
+  #toast.show { opacity: 1; transform: translateY(0); }
+  #toast.error { background: var(--error); color: white; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="logo">📡</div>
+    <div>
+      <h1>FileHub</h1>
+      <h1><span><!-- SLOT:displaypath --></span></h1>
+    </div>
+  </header>
+
+  <!-- Upload -->
+  <div class="upload-card">
+    <h2>Upload</h2>
+    <div class="drop-zone" id="drop-zone">
+      <input type="file" id="file-input" name="file">
+      <div class="drop-icon">⬆️</div>
+      <div class="drop-label">Drop a file here or <strong>click to browse</strong></div>
+      <div id="file-name"></div>
+    </div>
+    <div class="form-row">
+      <select id="folder-select" name="target_folder">
+        <option value=".">/ root</option>
+        <!-- SLOT:folder_options -->
+      </select>
+      <button class="btn btn-primary" onclick="doUpload()">Upload</button>
+    </div>
+    <div id="progress-wrap"><div id="progress-bar"></div></div>
+    <div id="upload-status"></div>
+  </div>
+
+  <!-- File list -->
+  <div class="section-title">Contents</div>
+  <ul class="file-list">
+    <li>
+      <a class="file-item" href="..">
+        <span class="file-icon">↩</span>
+        <span class="file-name">..</span>
+        <span class="badge-parent">parent</span>
+      </a>
+    </li>
+    <!-- SLOT:file_items -->
+  </ul>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  const dropZone = document.getElementById('drop-zone');
+  const fileInput = document.getElementById('file-input');
+  const fileName  = document.getElementById('file-name');
+
+  fileInput.addEventListener('change', () => {
+    fileName.textContent = fileInput.files[0]?.name || '';
+  });
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    if (e.dataTransfer.files.length) {
+      fileInput.files = e.dataTransfer.files;
+      fileName.textContent = fileInput.files[0].name;
+    }
+  });
+
+  function toast(msg, isError = false) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = isError ? 'error show' : 'show';
+    setTimeout(() => t.className = '', 3000);
+  }
+
+  function doUpload() {
+    const file = fileInput.files[0];
+    if (!file) { toast('Pick a file first', true); return; }
+    const folder = document.getElementById('folder-select').value;
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('target_folder', folder);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', window.location.pathname);
+
+    const progressWrap = document.getElementById('progress-wrap');
+    const progressBar  = document.getElementById('progress-bar');
+    const status       = document.getElementById('upload-status');
+
+    progressWrap.style.display = 'block';
+    xhr.upload.onprogress = e => {
+      if (e.lengthComputable) {
+        const pct = Math.round(e.loaded / e.total * 100);
+        progressBar.style.width = pct + '%';
+        status.textContent = `Uploading… ${pct}%`;
+      }
+    };
+    xhr.onload = () => {
+      progressWrap.style.display = 'none';
+      progressBar.style.width = '0%';
+      if (xhr.status === 200 || xhr.status === 204) {
+        toast('✓ Uploaded: ' + file.name);
+        status.textContent = '';
+        fileInput.value = '';
+        fileName.textContent = '';
+        setTimeout(() => location.reload(), 800);
+      } else {
+        toast('Upload failed (' + xhr.status + ')', true);
+        status.textContent = '';
+      }
+    };
+    xhr.onerror = () => { toast('Network error', true); progressWrap.style.display = 'none'; };
+    xhr.send(fd);
+  }
+
+  function deleteFile(encodedPath, name) {
+    if (!confirm(`Delete "${name}"?`)) return;
+    fetch(encodedPath, { method: 'DELETE' })
+      .then(r => {
+        if (r.status === 204) {
+          toast('🗑 Deleted: ' + name);
+          setTimeout(() => location.reload(), 600);
+        } else {
+          toast('Delete failed (' + r.status + ')', true);
+        }
+      })
+      .catch(() => toast('Network error', true));
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  test:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install package
+        run: pip install -e .
+
+      - name: Check CLI entry point
+        run: lanserve --version
+
+      - name: Syntax check
+        run: python -m py_compile src/lanserve/server.py src/lanserve/__main__.py
+
+      - name: Verify template loads
+        run: |
+          python -c "
+          from lanserve.server import load_template, render_template
+          t = load_template()
+          assert '<!-- SLOT:displaypath -->' in t
+          result = render_template({'displaypath': '/test', 'folder_options': '', 'file_items': ''})
+          assert '<!-- SLOT:' not in result
+          print('✓ Template OK')
+          "
