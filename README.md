@@ -1,4 +1,4 @@
-#LANserve
+# LANserve
 
 A lightweight local file server with a clean browser UI — browse, upload, and delete files over your WiFi network from any device.
 
@@ -23,7 +23,7 @@ lanserve
 That's it. Open the printed URL in any browser on your network:
 
 ```
-📂 LANserve running!
+ LANserve running!
    Local:   http://localhost:8080
    Network: http://192.168.x.x:8080
    Serving: /your/current/directory
@@ -41,7 +41,7 @@ On mobile, open the **Network** URL. On desktop, use either.
 - **Choose upload folder** from a dropdown
 - **File type icons** and human-readable file sizes
 - **Threaded** — large uploads don't freeze browsing
-- **Zero external dependencies** — Python 3.8+ standard library only
+- **Zero external dependencies** — Python 3.11+ standard library only
 
 ---
 
@@ -54,9 +54,6 @@ Options:
   --port PORT, -p PORT    Port to listen on        (default: 8080)
   --dir DIR,  -d DIR      Directory to serve        (default: current directory)
   --host HOST             Address to bind to        (default: 0.0.0.0)
-  --https                 Enable HTTPS mode
-  --cert PATH             Path to TLS certificate   (used with --https)
-  --key  PATH             Path to TLS private key   (used with --https)
   --version, -v           Show version and exit
 ```
 
@@ -72,11 +69,6 @@ lanserve --port 9000
 # Serve Downloads on port 9000
 lanserve --dir ~/Downloads --port 9000
 
-# HTTPS mode (auto-generates a self-signed cert)
-lanserve --https
-
-# HTTPS with your own cert (e.g. from mkcert)
-lanserve --https --cert cert.pem --key key.pem
 ```
 
 ---
