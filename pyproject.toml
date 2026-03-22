@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lanserve"
-version = "1.0.0"
+version = "1.0.1"
 description = "Local network file server with browser UI — browse, upload, and delete files over WiFi"
 readme = "README.md"
 license = { file = "LICENSE" }
