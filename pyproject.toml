@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lanserve"
-version = "1.0.2"
+version = "1.0.3"
 description = "Local network file server with browser UI — browse, upload, and delete files over WiFi"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -44,7 +44,7 @@ Changelog   = "https://github.com/Dev-syphax/lanserve/blob/main/CHANGELOG.md"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
-packages    = ["lanserve"]
+packages    = ["lanserve", "lanserve.static"]
 
 [tool.setuptools.package-data]
-lanserve = ["template.html"]
+"lanserve.static" = ["*.html", "*.css", "*.js"]

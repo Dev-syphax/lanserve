@@ -17,16 +17,26 @@ import sys
 import urllib.parse
 from socketserver import ThreadingMixIn
 
+# importlib.resources loads package data correctly after pip install,
+# whether the package is installed, run from source, or zipped.
+try:
+    from importlib.resources import files as _res_files          # Python 3.9+
+    def _read_static(filename: str) -> bytes:
+        return _res_files("lanserve").joinpath("static").joinpath(filename).read_bytes()
+except ImportError:
+    import importlib.resources as _ir                             # Python 3.8
+    def _read_static(filename: str) -> bytes:
+        with _ir.open_binary("lanserve.static", filename) as f:
+            return f.read()
+
+def _read_template() -> str:
+    return _read_static("template.html").decode("utf-8")
+
 # ── Config (overridden by CLI args in run()) ───────────────────────────────────
 
 DEFAULT_PORT = 8080
 DEFAULT_HOST = "0.0.0.0"
-
-# Resolve the template path relative to this script file, not the working
-# directory. This means `python some/path/server.py` works from anywhere.
-_SCRIPT_DIR   = os.path.dirname(os.path.abspath(__file__))
-TEMPLATE_PATH = os.path.join(_SCRIPT_DIR, "template.html")
-DIRECTORY     = os.path.abspath(".")   # overridden in run()
+DIRECTORY    = os.path.abspath(".")   # overridden in run()
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -65,13 +75,14 @@ def file_icon(name: str, is_dir: bool) -> str:
 
 
 def load_template() -> str:
-    if not os.path.exists(TEMPLATE_PATH):
+    """Load template.html from the installed package data."""
+    try:
+        return _read_template()
+    except Exception as e:
         raise FileNotFoundError(
-            f"template.html not found at {TEMPLATE_PATH}\n"
-            "Make sure template.html is in the same directory as the lanserve package."
-        )
-    with open(TEMPLATE_PATH, "r", encoding="utf-8") as f:
-        return f.read()
+            f"Could not load template.html from the lanserve package: {e}\n"
+            "Try reinstalling: pip install --force-reinstall lanserve"
+        ) from e
 
 
 def render_template(slots: dict) -> str:
@@ -139,7 +150,31 @@ def parse_multipart(headers, body: bytes) -> tuple:
 
 # ── Request handler ────────────────────────────────────────────────────────────
 
+_STATIC_MIME = {
+    ".css": "text/css; charset=utf-8",
+    ".js":  "application/javascript; charset=utf-8",
+}
+
 class LANserveHandler(http.server.SimpleHTTPRequestHandler):
+
+    def do_GET(self):
+        """Intercept /_static/* requests and serve from package data."""
+        if self.path.startswith("/_static/"):
+            filename = self.path[len("/_static/"):].split("?")[0]
+            ext  = os.path.splitext(filename)[1].lower()
+            mime = _STATIC_MIME.get(ext, "application/octet-stream")
+            try:
+                data = _read_static(filename)
+                self.send_response(200)
+                self.send_header("Content-Type", mime)
+                self.send_header("Content-Length", str(len(data)))
+                self.send_header("Cache-Control", "public, max-age=3600")
+                self.end_headers()
+                self.wfile.write(data)
+            except Exception:
+                self.send_error(404, f"Static file not found: {filename}")
+            return
+        super().do_GET()
 
     def list_directory(self, path):
         try:
