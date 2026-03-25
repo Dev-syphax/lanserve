@@ -312,10 +312,13 @@ class ThreadedHTTPServer(ThreadingMixIn, http.server.HTTPServer):
 
     def handle_error(self, request, client_address):
         exctype, value = sys.exc_info()[:2]
-        # Silently drop broken pipe / connection reset errors
-        if exctype in (BrokenPipeError, ConnectionResetError):
+        # Silently drop client-side disconnects — these are normal when:
+        if exctype in (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
             return
-        if "Broken pipe" in str(value) or "Connection reset" in str(value):
+        msg = str(value)
+        if any(s in msg for s in ("Broken pipe", "Connection reset",
+                                  "Connection aborted", "WinError 10053",
+                                  "WinError 10054")):
             return
         super().handle_error(request, client_address)
 
@@ -344,7 +347,8 @@ def run(host: str = DEFAULT_HOST, port: int = DEFAULT_PORT, directory: str = "."
     server = ThreadedHTTPServer((host, port), handler_factory)
     ip     = get_local_ip()
 
-    print(f"\n📂 LANserve running!")
+    print(f"\n LANserve running!")
+    print(f"   Warning: Only use on trusted networks!")
     print(f"   Local:   http://localhost:{port}")
     print(f"   Network: http://{ip}:{port}")
     print(f"   Serving: {DIRECTORY}")
@@ -353,7 +357,7 @@ def run(host: str = DEFAULT_HOST, port: int = DEFAULT_PORT, directory: str = "."
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        print("\n✓ Stopped.")
+        print("\n Stopped.")
 
 
 if __name__ == "__main__":

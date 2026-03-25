@@ -27,6 +27,13 @@ jobs:
 
       - name: Build package
         run: python -m build
+      
+      - name: Create GitHub release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          body: "Automated release of version ${{ github.ref_name }}"
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
