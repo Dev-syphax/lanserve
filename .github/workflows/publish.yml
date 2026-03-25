@@ -12,6 +12,7 @@ jobs:
     environment: pypi
     permissions:
       id-token: write   # required for trusted publishing (no API key needed)
+      contents: write   # required for creating releases
 
     steps:
       - name: Checkout
