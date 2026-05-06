@@ -100,7 +100,9 @@ def parse_multipart(headers, body: bytes) -> tuple:
     Parse multipart/form-data without the deprecated cgi module.
     Returns:
         fields : {name: str}
-        files  : {name: (filename, bytes)}
+        files  : {name: (filename, bytes)}  — multiple files with the same
+                 field name (e.g. 'file') are stored as 'file', 'file_1',
+                 'file_2', … so all are preserved.
     """
     content_type = headers.get("Content-Type", "")
     boundary = None
@@ -141,7 +143,14 @@ def parse_multipart(headers, body: bytes) -> tuple:
         if name is None:
             continue
         if filename is not None:
-            files[name] = (filename, part_body)
+            # Deduplicate keys so multiple files under the same field name
+            # (browsers always use "file") don't overwrite each other.
+            key = name
+            counter = 1
+            while key in files:
+                key = f"{name}_{counter}"
+                counter += 1
+            files[key] = (filename, part_body)
         else:
             fields[name] = part_body.decode("utf-8", errors="replace")
 
@@ -245,8 +254,7 @@ class LANserveHandler(http.server.SimpleHTTPRequestHandler):
         fields, files = parse_multipart(self.headers, body)
         target_dir    = fields.get("target_folder", ".")
 
-        if "file" in files:
-            filename, data = files["file"]
+        for _key, (filename, data) in files.items():
             if filename:
                 fn          = os.path.basename(filename)
                 upload_path = os.path.join(DIRECTORY, target_dir, fn)
