@@ -1,10 +1,15 @@
-
-  const dropZone = document.getElementById('drop-zone');
+const dropZone = document.getElementById('drop-zone');
   const fileInput = document.getElementById('file-input');
   const fileName  = document.getElementById('file-name');
 
+  function describeFiles(files) {
+    if (!files.length) return '';
+    if (files.length === 1) return files[0].name;
+    return `${files.length} files selected`;
+  }
+
   fileInput.addEventListener('change', () => {
-    fileName.textContent = fileInput.files[0]?.name || '';
+    fileName.textContent = describeFiles(fileInput.files);
   });
   dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
   dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
@@ -13,7 +18,7 @@
     dropZone.classList.remove('drag-over');
     if (e.dataTransfer.files.length) {
       fileInput.files = e.dataTransfer.files;
-      fileName.textContent = fileInput.files[0].name;
+      fileName.textContent = describeFiles(e.dataTransfer.files);
     }
   });
 
@@ -25,11 +30,11 @@
   }
 
   function doUpload() {
-    const file = fileInput.files[0];
-    if (!file) { toast('Pick a file first', true); return; }
+    const files = fileInput.files;
+    if (!files.length) { toast('Pick a file first', true); return; }
     const folder = document.getElementById('folder-select').value;
     const fd = new FormData();
-    fd.append('file', file);
+    for (const file of files) fd.append('file', file);
     fd.append('target_folder', folder);
 
     const xhr = new XMLHttpRequest();
@@ -51,7 +56,8 @@
       progressWrap.style.display = 'none';
       progressBar.style.width = '0%';
       if (xhr.status === 200 || xhr.status === 204) {
-        toast('✓ Uploaded: ' + file.name);
+        const label = files.length === 1 ? files[0].name : `${files.length} files`;
+        toast('✓ Uploaded: ' + label);
         status.textContent = '';
         fileInput.value = '';
         fileName.textContent = '';
