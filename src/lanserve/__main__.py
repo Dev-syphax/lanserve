@@ -17,6 +17,7 @@ Examples:
   lanserve                          Serve current directory on port 8080
   lanserve --port 9000              Custom port
   lanserve --dir ~/Downloads        Serve a specific folder
+  lanserve --code mySecret123       Require a code for uploads/deletes
         """,
     )
     parser.add_argument("--port", "-p", type=int, default=None,
@@ -25,6 +26,8 @@ Examples:
                         help="Directory to serve (default: current directory)")
     parser.add_argument("--host", default="0.0.0.0",
                         help="Address to bind to (default: 0.0.0.0)")
+    parser.add_argument("--code", "-c", default=None,
+                        help="Access code required for uploads/deletes (default: none, disabled)")
     parser.add_argument("--version", "-v", action="version",
                         version=f"%(prog)s {_get_version()}")
     return parser.parse_args()
@@ -51,7 +54,7 @@ def main():
 
         from lanserve.server import run as run_http
         port = args.port or 8080
-        run_http(host=args.host, port=port, directory=directory)
+        run_http(host=args.host, port=port, directory=directory, code=args.code)
 
 
 if __name__ == "__main__":
