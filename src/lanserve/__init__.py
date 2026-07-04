@@ -7,6 +7,6 @@ Usage:
     lanserve --dir ~/Downloads
 """
 
-__version__ = "1.1.2"
+__version__ = "1.2.0"
 __author__  = "Syphax"
 __license__ = "MIT"
