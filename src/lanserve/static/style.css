@@ -137,6 +137,25 @@ select {
   background-position: right 0.75rem center;
   padding-right: 2rem;
 }
+.auth-input {
+  flex: 1;
+  min-width: 120px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0.6rem 0.8rem;
+  border-radius: var(--radius);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.85rem;
+}
+.auth-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.auth-input::placeholder {
+  color: var(--muted);
+}
+
 .btn {
   padding: 0.6rem 1.4rem;
   border-radius: var(--radius);
