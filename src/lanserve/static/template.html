@@ -1,57 +1,60 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LANserve  <!-- SLOT:displaypath --></title>
-<link rel="stylesheet" href="/_static/style.css">
-</head>
-<body>
-<div class="wrap">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LANserve <!-- SLOT:displaypath --></title>
+    <link rel="stylesheet" href="/_static/style.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <div>
+          <h1>LANserve</h1>
+          <h1>
+            <span><!-- SLOT:displaypath --></span>
+          </h1>
+        </div>
+      </header>
 
-  <header>
-    <div>
-      <h1>LANserve</h1>
-      <h1><span><!-- SLOT:displaypath --></span></h1>
+      <!-- Upload -->
+      <div class="upload-card">
+        <h2>Upload</h2>
+        <div class="drop-zone" id="drop-zone">
+          <input type="file" id="file-input" name="file" multiple />
+          <div class="drop-icon">⬆️</div>
+          <div class="drop-label">
+            Drop a file here or <strong>click to browse</strong>
+          </div>
+          <div id="file-name"></div>
+        </div>
+        <div class="form-row">
+          <select id="folder-select" name="target_folder">
+            <option value=".">/ root</option>
+            <!-- SLOT:folder_options -->
+          </select>
+          <button class="btn btn-primary" onclick="doUpload()">Upload</button>
+        </div>
+        <div id="progress-wrap"><div id="progress-bar"></div></div>
+        <div id="upload-status"></div>
+      </div>
+
+      <!-- File list -->
+      <div class="section-title">Contents</div>
+      <ul class="file-list">
+        <li>
+          <a class="file-item" href="..">
+            <span class="file-icon">↩</span>
+            <span class="file-name">..</span>
+            <span class="badge-parent">parent</span>
+          </a>
+        </li>
+        <!-- SLOT:file_items -->
+      </ul>
     </div>
-  </header>
 
-  <!-- Upload -->
-  <div class="upload-card">
-    <h2>Upload</h2>
-    <div class="drop-zone" id="drop-zone">
-      <input type="file" id="file-input" name="file" multiple>
-      <div class="drop-icon">⬆️</div>
-      <div class="drop-label">Drop a file here or <strong>click to browse</strong></div>
-      <div id="file-name"></div>
-    </div>
-    <div class="form-row">
-      <select id="folder-select" name="target_folder">
-        <option value=".">/ root</option>
-        <!-- SLOT:folder_options -->
-      </select>
-      <button class="btn btn-primary" onclick="doUpload()">Upload</button>
-    </div>
-    <div id="progress-wrap"><div id="progress-bar"></div></div>
-    <div id="upload-status"></div>
-  </div>
+    <div id="toast"></div>
 
-  <!-- File list -->
-  <div class="section-title">Contents</div>
-  <ul class="file-list">
-    <li>
-      <a class="file-item" href="..">
-        <span class="file-icon">↩</span>
-        <span class="file-name">..</span>
-        <span class="badge-parent">parent</span>
-      </a>
-    </li>
-    <!-- SLOT:file_items -->
-  </ul>
-</div>
-
-<div id="toast"></div>
-
-<script src="/_static/template.js"></script>
-</body>
+    <script src="/_static/template.js"></script>
+  </body>
 </html>
