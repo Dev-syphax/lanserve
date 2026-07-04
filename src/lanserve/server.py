@@ -1,13 +1,3 @@
-"""
-LANserve — HTTP file server for local network use.
-
-Usage:
-    python server.py                      # serves current directory on port 8080
-    python server.py --port 9000          # custom port
-    python server.py --dir ~/Downloads    # custom directory
-    python server.py --host 0.0.0.0       # explicit bind address
-"""
-
 import email
 import http.server
 import io
@@ -37,6 +27,7 @@ def _read_template() -> str:
 DEFAULT_PORT = 8080
 DEFAULT_HOST = "0.0.0.0"
 DIRECTORY    = os.path.abspath(".")   # overridden in run()
+SECRET_CODE  = None                   # overridden in run() via --code; None = auth disabled
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -166,6 +157,19 @@ _STATIC_MIME = {
 
 class LANserveHandler(http.server.SimpleHTTPRequestHandler):
 
+    def _check_auth(self) -> bool:
+        if SECRET_CODE is None:
+            return True
+        return self.headers.get("X-Auth-Code") == SECRET_CODE
+
+    def _reject_unauthorized(self):
+        body = b"Unauthorized: missing or incorrect access code"
+        self.send_response(401)
+        self.send_header("Content-Type", "text/plain")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
     def do_GET(self):
         """Intercept /_static/* requests and serve from package data."""
         if self.path.startswith("/_static/"):
@@ -248,6 +252,12 @@ class LANserveHandler(http.server.SimpleHTTPRequestHandler):
         return buf
 
     def do_POST(self):
+        if not self._check_auth():
+            content_length = int(self.headers.get("Content-Length", 0))
+            self.rfile.read(content_length)
+            self._reject_unauthorized()
+            return
+
         content_length = int(self.headers.get("Content-Length", 0))
         body = self.rfile.read(content_length)
 
@@ -268,6 +278,10 @@ class LANserveHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_DELETE(self):
         """DELETE /path/to/file — triggered by the UI's delete button."""
+        if not self._check_auth():
+            self._reject_unauthorized()
+            return
+
         rel  = urllib.parse.unquote(self.path.lstrip("/"))
         full = os.path.realpath(os.path.join(DIRECTORY, rel))
 
@@ -295,6 +309,7 @@ class LANserveHandler(http.server.SimpleHTTPRequestHandler):
     def end_headers(self):
         self.send_header("Access-Control-Allow-Origin",  "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "X-Auth-Code, Content-Type")
         self.send_header("Accept-Ranges", "bytes")
         super().end_headers()
 
@@ -333,21 +348,12 @@ class ThreadedHTTPServer(ThreadingMixIn, http.server.HTTPServer):
 
 # ── Entry point ────────────────────────────────────────────────────────────────
 
-def run(host: str = DEFAULT_HOST, port: int = DEFAULT_PORT, directory: str = "."):
-    """
-    Start the HTTP file server.
+def run(host: str = DEFAULT_HOST, port: int = DEFAULT_PORT, directory: str = ".",
+        code: str = None):
 
-    Args:
-        host:      Bind address   (default: 0.0.0.0)
-        port:      Port number    (default: 8080)
-        directory: Directory to serve (default: current directory)
-
-    Called by __main__.py (the `lanserve` CLI) or directly in scripts:
-        from lanserve.server import run
-        run(port=9000, directory="/tmp/share")
-    """
-    global DIRECTORY
-    DIRECTORY = os.path.abspath(directory)
+    global DIRECTORY, SECRET_CODE
+    DIRECTORY   = os.path.abspath(directory)
+    SECRET_CODE = code
 
     def handler_factory(*a, **kw):
         return LANserveHandler(*a, directory=DIRECTORY, **kw)
@@ -360,6 +366,10 @@ def run(host: str = DEFAULT_HOST, port: int = DEFAULT_PORT, directory: str = "."
     print(f"   Local:   http://localhost:{port}")
     print(f"   Network: http://{ip}:{port}")
     print(f"   Serving: {DIRECTORY}")
+    if SECRET_CODE:
+        print(f"   Auth:    enabled (uploads/deletes require the access code)")
+    else:
+        print(f"   Auth:    disabled (no --code given — uploads/deletes are open)")
     print(f"   (Ctrl+C to stop)\n")
 
     try:
@@ -369,11 +379,27 @@ def run(host: str = DEFAULT_HOST, port: int = DEFAULT_PORT, directory: str = "."
 
 
 if __name__ == "__main__":
-    # Standalone usage: python server.py [--port] [--dir] [--host]
+    # Standalone usage: python server.py [--port] [--dir] [--host] [--code]
     import argparse
-    parser = argparse.ArgumentParser(description="LANserve HTTP server")
-    parser.add_argument("--port", "-p", type=int, default=DEFAULT_PORT)
-    parser.add_argument("--host", default=DEFAULT_HOST)
-    parser.add_argument("--dir", "-d", default=".")
+    parser = argparse.ArgumentParser(
+        prog="server.py",
+        description="LANserve — local network file server with browser UI",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  python server.py                          Serve current directory on port 8080
+  python server.py --port 9000              Custom port
+  python server.py --dir ~/Downloads        Serve a specific folder
+  python server.py --code mySecret123       Require a code for uploads/deletes
+        """,
+    )
+    parser.add_argument("--port", "-p", type=int, default=DEFAULT_PORT,
+                        help=f"Port to listen on (default: {DEFAULT_PORT})")
+    parser.add_argument("--host", default=DEFAULT_HOST,
+                        help=f"Address to bind to (default: {DEFAULT_HOST})")
+    parser.add_argument("--dir", "-d", default=".",
+                        help="Directory to serve (default: current directory)")
+    parser.add_argument("--code", "-c", default=None,
+                        help="Access code required for uploads/deletes (default: none, disabled)")
     a = parser.parse_args()
-    run(host=a.host, port=a.port, directory=a.dir)
+    run(host=a.host, port=a.port, directory=a.dir, code=a.code)
