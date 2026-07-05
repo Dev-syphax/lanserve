@@ -2,6 +2,7 @@ import email
 import http.server
 import io
 import os
+import secrets
 import socket
 import sys
 import urllib.parse
@@ -28,6 +29,7 @@ DEFAULT_PORT = 8080
 DEFAULT_HOST = "0.0.0.0"
 DIRECTORY    = os.path.abspath(".")   # overridden in run()
 SECRET_CODE  = None                   # overridden in run() via --code; None = auth disabled
+VALID_SESSIONS = set()                # session tokens proven valid this run; wiped on restart
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -157,10 +159,25 @@ _STATIC_MIME = {
 
 class LANserveHandler(http.server.SimpleHTTPRequestHandler):
 
-    def _check_auth(self) -> bool:
+    def _get_session_token(self):
+        cookie_header = self.headers.get("Cookie", "")
+        for part in cookie_header.split(";"):
+            part = part.strip()
+            if part.startswith("lanserve_session="):
+                return part[len("lanserve_session="):]
+        return None
+
+    def _authenticate(self):
         if SECRET_CODE is None:
-            return True
-        return self.headers.get("X-Auth-Code") == SECRET_CODE
+            return True, None
+        token = self._get_session_token()
+        if token and token in VALID_SESSIONS:
+            return True, None
+        if self.headers.get("X-Auth-Code") == SECRET_CODE:
+            new_token = secrets.token_urlsafe(32)
+            VALID_SESSIONS.add(new_token)
+            return True, new_token
+        return False, None
 
     def _reject_unauthorized(self):
         body = b"Unauthorized: missing or incorrect access code"
@@ -252,11 +269,13 @@ class LANserveHandler(http.server.SimpleHTTPRequestHandler):
         return buf
 
     def do_POST(self):
-        if not self._check_auth():
+        authorized, new_token = self._authenticate()
+        if not authorized:
             content_length = int(self.headers.get("Content-Length", 0))
             self.rfile.read(content_length)
             self._reject_unauthorized()
             return
+        self._pending_session_token = new_token
 
         content_length = int(self.headers.get("Content-Length", 0))
         body = self.rfile.read(content_length)
@@ -278,9 +297,11 @@ class LANserveHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_DELETE(self):
         """DELETE /path/to/file — triggered by the UI's delete button."""
-        if not self._check_auth():
+        authorized, new_token = self._authenticate()
+        if not authorized:
             self._reject_unauthorized()
             return
+        self._pending_session_token = new_token
 
         rel  = urllib.parse.unquote(self.path.lstrip("/"))
         full = os.path.realpath(os.path.join(DIRECTORY, rel))
@@ -311,6 +332,13 @@ class LANserveHandler(http.server.SimpleHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "X-Auth-Code, Content-Type")
         self.send_header("Accept-Ranges", "bytes")
+        new_token = getattr(self, "_pending_session_token", None)
+        if new_token:
+            self.send_header(
+                "Set-Cookie",
+                f"lanserve_session={new_token}; HttpOnly; SameSite=Strict; "
+                f"Path=/; Max-Age=31536000"
+            )
         super().end_headers()
 
     def do_OPTIONS(self):
@@ -350,10 +378,11 @@ class ThreadedHTTPServer(ThreadingMixIn, http.server.HTTPServer):
 
 def run(host: str = DEFAULT_HOST, port: int = DEFAULT_PORT, directory: str = ".",
         code: str = None):
-
-    global DIRECTORY, SECRET_CODE
+   
+    global DIRECTORY, SECRET_CODE, VALID_SESSIONS
     DIRECTORY   = os.path.abspath(directory)
     SECRET_CODE = code
+    VALID_SESSIONS = set()
 
     def handler_factory(*a, **kw):
         return LANserveHandler(*a, directory=DIRECTORY, **kw)
