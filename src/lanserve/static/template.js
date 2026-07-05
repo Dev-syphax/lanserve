@@ -34,6 +34,22 @@ function toast(msg, isError = false) {
   setTimeout(() => (t.className = ""), 3000);
 }
 
+function refreshFileList() {
+  fetch(window.location.href)
+    .then((r) => r.text())
+    .then((html) => {
+      const doc = new DOMParser().parseFromString(html, "text/html");
+      const newList = doc.querySelector(".file-list");
+      const newFolder = doc.querySelector("#folder-select");
+      if (newList)
+        document.querySelector(".file-list").innerHTML = newList.innerHTML;
+      if (newFolder)
+        document.getElementById("folder-select").innerHTML =
+          newFolder.innerHTML;
+    })
+    .catch(() => location.reload());
+}
+
 function doUpload() {
   const files = fileInput.files;
   if (!files.length) {
@@ -41,13 +57,16 @@ function doUpload() {
     return;
   }
   const folder = document.getElementById("folder-select").value;
+  attemptUpload(files, folder, null);
+}
+
+function attemptUpload(files, folder, code) {
   const fd = new FormData();
   for (const file of files) fd.append("file", file);
   fd.append("target_folder", folder);
 
   const xhr = new XMLHttpRequest();
   xhr.open("POST", window.location.pathname);
-  const code = document.getElementById("auth-code").value;
   if (code) xhr.setRequestHeader("X-Auth-Code", code);
 
   const progressWrap = document.getElementById("progress-wrap");
@@ -72,10 +91,21 @@ function doUpload() {
       status.textContent = "";
       fileInput.value = "";
       fileName.textContent = "";
-      setTimeout(() => location.reload(), 800);
+      setTimeout(refreshFileList, 800);
     } else if (xhr.status === 401) {
-      toast("Wrong or missing access code", true);
-      status.textContent = "";
+      progressWrap.style.display = "none";
+      if (code !== null) {
+        toast("Wrong access code", true);
+        status.textContent = "";
+        return;
+      }
+      const entered = window.prompt("Enter access code:");
+      if (entered === null) {
+        toast("Access code required", true);
+        status.textContent = "";
+        return;
+      }
+      attemptUpload(files, folder, entered);
     } else {
       toast("Upload failed (" + xhr.status + ")", true);
       status.textContent = "";
@@ -90,7 +120,10 @@ function doUpload() {
 
 function deleteFile(encodedPath, name) {
   if (!confirm(`Delete "${name}"?`)) return;
-  const code = document.getElementById("auth-code").value;
+  attemptDelete(encodedPath, name, null);
+}
+
+function attemptDelete(encodedPath, name, code) {
   fetch(encodedPath, {
     method: "DELETE",
     headers: code ? { "X-Auth-Code": code } : {},
@@ -98,9 +131,18 @@ function deleteFile(encodedPath, name) {
     .then((r) => {
       if (r.status === 204) {
         toast("🗑 Deleted: " + name);
-        setTimeout(() => location.reload(), 600);
+        setTimeout(refreshFileList, 600);
       } else if (r.status === 401) {
-        toast("Wrong or missing access code", true);
+        if (code !== null) {
+          toast("Wrong access code", true);
+          return;
+        }
+        const entered = window.prompt("Enter access code:");
+        if (entered === null) {
+          toast("Access code required", true);
+          return;
+        }
+        attemptDelete(encodedPath, name, entered);
       } else {
         toast("Delete failed (" + r.status + ")", true);
       }
