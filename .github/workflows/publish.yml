@@ -3,7 +3,7 @@ name: Publish to PyPI
 on:
   push:
     tags:
-      - "v*.*.*"   # triggers on v1.0.0, v1.2.3, etc.
+      - "v*.*.*"
 
 jobs:
   publish:
@@ -11,8 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
-      id-token: write   # required for trusted publishing (no API key needed)
-      contents: write   # required for creating releases
+      id-token: write
+      contents: write
 
     steps:
       - name: Checkout
@@ -28,7 +28,7 @@ jobs:
 
       - name: Build package
         run: python -m build
-      
+
       - name: Create GitHub release
         uses: ncipollo/release-action@v1
         with:
