@@ -32,6 +32,18 @@ Then:
 lanserve
 ```
 
+### Download a release
+
+Download the latest pre-built release:
+
+[**Download LANserve**](https://github.com/Dev-syphax/lanserve/releases/latest)
+
+Available for:
+
+- Linux — AMD64 / ARM64
+- macOS — Intel / Apple Silicon
+- Windows — AMD64 / ARM64
+
 ---
 
 ## Clone & Build
