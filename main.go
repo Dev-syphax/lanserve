@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"lanserve/server"
+	"github.com/Dev-syphax/lanserve/server"
 	"net/http"
 	"os"
 	"path/filepath"
