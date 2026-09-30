@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LANserve</title>
+    <link rel="stylesheet" href="/_static/style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <!-- Header -->
+      <header class="header">
+        <div class="brand">
+          <div>
+            <h1 class="brand-title">LANserve</h1>
+            <p class="brand-subtitle">
+              Path: <span class="brand-path"><!-- SLOT:displaypath --></span>
+            </p>
+          </div>
+        </div>
+        <div>
+          <input
+            type="text"
+            id="searchInput"
+            placeholder="Search files..."
+            onkeyup="filterFiles()"
+            class="search-input"
+          />
+        </div>
+      </header>
+
+      <!-- Drag & Drop Upload Container -->
+      <div id="dropZone" class="dropzone">
+        <div class="dropzone-content">
+          <div class="upload-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="lucide lucide-upload preview-icon"
+            >
+              <path d="M12 3v12" />
+              <path d="m17 8-5-5-5 5" />
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            </svg>
+          </div>
+          <div>
+            <p>
+              Drag & drop files here, or
+              <label for="fileInput" class="browse-label">browse</label>
+            </p>
+            <p class="brand-subtitle" style="margin-top: 0.25rem">
+              Uploaded files save directly to the active folder
+            </p>
+          </div>
+          <input
+            type="file"
+            id="fileInput"
+            multiple
+            class="hidden"
+            onchange="uploadFiles(this.files)"
+          />
+          <div class="target-select-wrapper">
+            <span>Target Folder:</span>
+            <select id="targetFolder" class="target-select">
+              <!-- SLOT:folder_options -->
+            </select>
+          </div>
+        </div>
+        <!-- Upload Progress Bar -->
+        <div id="progressContainer" class="progress-container hidden">
+          <div class="progress-track">
+            <div id="progressBar" class="progress-bar"></div>
+          </div>
+          <p id="progressText" class="progress-text">Uploading...</p>
+        </div>
+      </div>
+
+      <!-- File Table Container -->
+      <div class="card">
+        <div class="table-wrapper">
+          <table class="file-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Size</th>
+                <th class="text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="fileTableBody">
+              <!-- SLOT:file_items -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <script src="/_static/app.js"></script>
+  </body>
+</html>
