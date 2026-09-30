@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"lanserve/web"
+	"github.com/Dev-syphax/lanserve/web"
 )
 
 type Server struct {
