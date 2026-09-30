@@ -43,7 +43,7 @@ VERSION="$(
 
 VERSION="${VERSION#v}"
 
-ARCHIVE="${BINARY}_${VERSION}_${OS}_${ARCH}.tar.gz"
+ARCHIVE="${BINARY}_.${VERSION}_.${OS}_.${ARCH}.tar.gz"
 
 URL="https://github.com/${REPO}/releases/download/v${VERSION}/${ARCHIVE}"
 
@@ -63,7 +63,7 @@ install -m 755 "$TMP_DIR/$BINARY" "$INSTALL_DIR/$BINARY"
 
 echo
 echo " ${BINARY} installed successfully."
-echo "  Location: ${INSTALL_DIR}/${BINARY}"
+echo " Location: ${INSTALL_DIR}/${BINARY}"
 echo
 
 if [[ ":$PATH:" != *":$INSTALL_DIR:"* ]]; then
