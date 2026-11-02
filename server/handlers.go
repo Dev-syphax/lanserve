@@ -154,6 +154,8 @@ func (s *Server) listDirectory(w http.ResponseWriter, r *http.Request, path, req
 		}
 
 		isDir := entry.IsDir()
+
+		isImg := name != "" && (strings.HasSuffix(strings.ToLower(name), ".png") || strings.HasSuffix(strings.ToLower(name), ".jpg") || strings.HasSuffix(strings.ToLower(name), ".jpeg") || strings.HasSuffix(strings.ToLower(name), ".gif") || strings.HasSuffix(strings.ToLower(name), ".bmp") || strings.HasSuffix(strings.ToLower(name), ".webp"))
 		link := url.PathEscape(name)
 		if isDir {
 			link += "/"
@@ -169,30 +171,38 @@ func (s *Server) listDirectory(w http.ResponseWriter, r *http.Request, path, req
 		relPath := strings.TrimPrefix(cleanReqPath+"/"+url.PathEscape(name), "/")
 
 		deleteBtn := ""
-		if !isDir {
+		if !isDir  {
 			deleteBtn = fmt.Sprintf(
 				`<button class="delete-btn" onclick="event.stopPropagation(); deleteFile('/%s', '%s')">Delete</button>`,
 				relPath, html.EscapeString(name),
 			)
 		}
+	
+		displayName := html.EscapeString(name)	
 
-		displayName := html.EscapeString(name)
 		if isDir {
 			displayName += "/"
+		}
+		
+		safeIcon := ""
+		if isImg {
+			safeIcon = fmt.Sprintf(`<img src="%s" alt="%s" class="file-thumbnail">`, link, html.EscapeString(name))
+		} else {
+			safeIcon = fmt.Sprintf(`<span class="file-icon">%s</span>`, icon)
 		}
 
 		rows.WriteString(fmt.Sprintf(`
 					<tr class="file-row" data-name="%s">
 						<td>
 							<a href="%s" class="file-link">
-								<span class="file-icon">%s</span>
+								<div>%s</div>
 								<span>%s</span>
 							</a>
 						</td>
 						<td style="color: var(--text-muted);">%s</td>
 						<td class="text-right">%s</td>
 					</tr>`,
-			strings.ToLower(displayName), link, icon, displayName, sizeStr, deleteBtn,
+			strings.ToLower(displayName), link, safeIcon, displayName, sizeStr, deleteBtn,
 		))
 	}
 
