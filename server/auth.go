@@ -2,14 +2,17 @@ package server
 
 import (
 	"crypto/rand"
+	"crypto/subtle"
 	"encoding/base64"
 	"net/http"
 )
 
-func GenerateToken() string {
+func GenerateToken() (string, error) {
 	b := make([]byte, 32)
-	rand.Read(b)
-	return base64.URLEncoding.EncodeToString(b)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return base64.URLEncoding.EncodeToString(b), nil
 }
 
 func (s *Server) Authenticate(r *http.Request) (bool, string) {
@@ -23,8 +26,13 @@ func (s *Server) Authenticate(r *http.Request) (bool, string) {
 		}
 	}
 
-	if r.Header.Get("X-Auth-Code") == s.SecretCode {
-		newToken := GenerateToken()
+	// Constant-time comparison so response timing doesn't leak the code.
+	supplied := r.Header.Get("X-Auth-Code")
+	if subtle.ConstantTimeCompare([]byte(supplied), []byte(s.SecretCode)) == 1 {
+		newToken, err := GenerateToken()
+		if err != nil {
+			return false, ""
+		}
 		s.Sessions.Add(newToken)
 		return true, newToken
 	}

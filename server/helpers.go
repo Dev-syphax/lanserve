@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"net"
+	"net/url"
 	"path/filepath"
 	"strings"
 )
@@ -55,5 +56,9 @@ func IsPathWithin(target, base string) bool {
 	if err != nil {
 		return false
 	}
-	return !strings.HasPrefix(rel, "..") && rel != ".." && rel != "."
+	return rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
+}
+
+func escapedURLPath(rel string) string {
+	return (&url.URL{Path: "/" + strings.TrimPrefix(rel, "/")}).EscapedPath()
 }

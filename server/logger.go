@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"strings"
 	"time"
 )
 
@@ -33,12 +32,10 @@ func (rl *responseLogger) WriteHeader(code int) {
 	rl.ResponseWriter.WriteHeader(code)
 }
 
-// Extract clean client IP (handles proxies like X-Forwarded-For if present)
+// Extract clean client IP. X-Forwarded-For is deliberately NOT trusted: LANserve
+// is not meant to sit behind a proxy, and the header is attacker-controlled, so
+// honouring it would let any client forge the address shown in the log.
 func getClientIP(r *http.Request) string {
-	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-		parts := strings.Split(xff, ",")
-		return strings.TrimSpace(parts[0])
-	}
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
 		return r.RemoteAddr
@@ -52,30 +49,30 @@ func getClientIP(r *http.Request) string {
 // Colorize HTTP Method badges
 func colorizeMethod(method string) string {
 	switch method {
-	case http.MethodGet:
-		return fmt.Sprintf("%s%s %-6s%s", colorBlue, colorBold, method, colorReset)
-	case http.MethodPost:
-		return fmt.Sprintf("%s%s %-6s%s", colorGreen, colorBold, method, colorReset)
-	case http.MethodDelete:
-		return fmt.Sprintf("%s%s %-6s%s", colorRed, colorBold, method, colorReset)
-	case http.MethodOptions:
-		return fmt.Sprintf("%s%s %-6s%s", colorGray, colorBold, method, colorReset)
-	default:
-		return fmt.Sprintf("%s%s %-6s%s", colorMagenta, colorBold, method, colorReset)
+		case http.MethodGet:
+			return fmt.Sprintf("%s%s %-6s%s", colorBlue, colorBold, method, colorReset)
+		case http.MethodPost:
+			return fmt.Sprintf("%s%s %-6s%s", colorGreen, colorBold, method, colorReset)
+		case http.MethodDelete:
+			return fmt.Sprintf("%s%s %-6s%s", colorRed, colorBold, method, colorReset)
+		case http.MethodOptions:
+			return fmt.Sprintf("%s%s %-6s%s", colorGray, colorBold, method, colorReset)
+		default:
+			return fmt.Sprintf("%s%s %-6s%s", colorMagenta, colorBold, method, colorReset)
 	}
 }
 
 // Colorize HTTP Status Codes
 func colorizeStatus(status int) string {
 	switch {
-	case status >= 200 && status < 300:
-		return fmt.Sprintf("%s%s %d %s", colorGreen, colorBold, status, colorGray)
-	case status >= 300 && status < 400:
-		return fmt.Sprintf("%s%s %d %s", colorCyan, colorBold, status, colorGray)
-	case status >= 400 && status < 500:
-		return fmt.Sprintf("%s%s %d %s", colorYellow, colorBold, status, colorGray)
-	default:
-		return fmt.Sprintf("%s%s %d %s", colorRed, colorBold, status, colorGray)
+		case status >= 200 && status < 300:
+			return fmt.Sprintf("%s%s %d %s", colorGreen, colorBold, status, colorGray)
+		case status >= 300 && status < 400:
+			return fmt.Sprintf("%s%s %d %s", colorCyan, colorBold, status, colorGray)
+		case status >= 400 && status < 500:
+			return fmt.Sprintf("%s%s %d %s", colorYellow, colorBold, status, colorGray)
+		default:
+			return fmt.Sprintf("%s%s %d %s", colorRed, colorBold, status, colorGray)
 	}
 }
 
@@ -97,11 +94,11 @@ func LogRequest(r *http.Request, status int, duration time.Duration) {
 	}
 
 	fmt.Printf(" %s%s%s │ %s  │%s%s │ %s%-15s%s │ %s %s\n",
-		colorGray, timestamp, colorGray,
-		statusCode,
-		latency, colorGray,
-		colorCyan, ip, colorGray,
-		method,
-		r.URL.Path,
+		   colorGray, timestamp, colorGray,
+	    statusCode,
+	    latency, colorGray,
+	    colorCyan, ip, colorGray,
+	    method,
+	    r.URL.EscapedPath(), // escaped: raw bytes could forge log lines or inject terminal escape codes
 	)
 }
